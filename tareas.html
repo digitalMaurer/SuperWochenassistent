@@ -1,0 +1,213 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestor de Tareas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/tareas.css">
+</head>
+<body>
+
+<div class="container">
+
+  <!-- CABECERA -->
+  <div class="header">
+    <h1>⚡ Gestor de Tareas</h1>
+    <div class="header-right">
+      <button class="btn-stats" id="statsToggleBtn" onclick="toggleStats()">📊 Estadísticas</button>
+      <div class="view-switch">
+        <button id="viewGestionBtn" class="btn2" onclick="setView('gestion')">📋 Gestión</button>
+        <button id="viewArbolBtn"   class="btn2" onclick="setView('arbol')">🎯 Foco</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PESTAÑAS -->
+  <div class="tabs" style="margin-bottom:14px;">
+    <button id="tabPendingBtn"   class="btn2" onclick="setTab('pending')">📌 Pendientes</button>
+    <button id="tabCompletedBtn" class="btn2" onclick="setTab('completed')">✅ Completadas</button>
+  </div>
+
+  <!-- CHIPS INFO -->
+  <div class="info-bar">
+    <div class="info-chip">💾 Guardado local + auto-backup al cerrar</div>
+    <div class="info-chip">🎯 Vista Foco jerarquía visual</div>
+    <div class="info-chip">🍅 Pomodoro por tarea</div>
+    <div class="info-chip">🏷 Etiquetas</div>
+    <div class="info-chip">📊 Estadísticas semanales</div>
+  </div>
+
+  <!-- =========================================================
+       PANEL DE ESTADÍSTICAS (colapsable)
+       ========================================================= -->
+  <div id="statsPanel" class="stats-panel hidden">
+    <h2>📊 Tu semana en números</h2>
+    <!-- Las tarjetas y el gráfico se generan dinámicamente en renderStats() -->
+    <div id="statsContent"></div>
+  </div>
+
+  <!-- PANEL PRINCIPAL (añadir tarea + acciones) -->
+  <div class="panel">
+    <div class="toolbar">
+      <input id="taskInput" type="text" placeholder="Nueva tarea... (Enter para añadir)"
+             onkeydown="if(event.key==='Enter') addTask()">
+      <button class="btn"  onclick="addTask()">+ Añadir</button>
+      <button class="btn5" onclick="createBackup(true)">💾 Backup</button>
+      <button class="btn2" onclick="restoreBackup()">↩ Restaurar</button>
+      <button class="btn9" onclick="document.getElementById('importFileInput').click()">📂 Importar</button>
+    </div>
+
+    <!-- Opciones de nueva tarea: prioridad, fecha límite, exportar -->
+    <div class="toolbar-sub">
+      <label class="small" style="white-space:nowrap;align-self:center;">Al añadir:</label>
+      <select id="defaultPriority">
+        <option value="normal">🔵 Normal</option>
+        <option value="alta">🔴 Alta</option>
+        <option value="baja">🟢 Baja</option>
+      </select>
+      <input id="defaultDueDate" type="date" style="width:auto;" title="Fecha límite opcional">
+      <button class="btn2" onclick="exportBackupFile()">⬇ Exportar JSON</button>
+    </div>
+
+    <!-- Barra de filtros (solo en vista Gestión) -->
+    <div class="filter-bar" id="filterBar">
+      <input id="searchInput" type="text" placeholder="🔍 Buscar..." oninput="render()" style="max-width:200px;">
+      <select id="filterPriority" onchange="render()">
+        <option value="">Todas las prioridades</option>
+        <option value="alta">🔴 Alta</option>
+        <option value="normal">🔵 Normal</option>
+        <option value="baja">🟢 Baja</option>
+      </select>
+      <!-- Filtro por etiqueta — se puebla dinámicamente -->
+      <select id="filterTag" onchange="render()">
+        <option value="">Todas las etiquetas</option>
+      </select>
+    </div>
+
+    <div class="small">
+      <strong>Notas:</strong> cada tarea tiene un bloque de notas colapsable.
+      <strong>Etiquetas:</strong> hasta 3 por tarea, filtrables. El auto-backup exporta al cerrar.
+    </div>
+    <div id="backupWarning" class="backup-warning"></div>
+  </div>
+
+  <!-- Lista de tareas -->
+  <div id="list"></div>
+
+</div><!-- /container -->
+
+<input type="file" id="importFileInput" accept=".json" onchange="importBackupFile(event)">
+
+<!-- =========================================================
+     MODAL DE EDICIÓN
+     Cubre: editar tarea, editar subtarea, nueva subtarea.
+     Campos: texto, prioridad, fecha límite, notas, etiquetas.
+     ========================================================= -->
+<div id="editModal" class="modal-overlay hidden" onclick="closeEditModalOnOverlay(event)">
+  <div class="modal-box">
+    <h3 id="editModalTitle">Editar</h3>
+
+    <!-- Texto principal -->
+    <div class="modal-field">
+      <label>Texto</label>
+      <input id="editInput" type="text" placeholder="Descripción..."
+             onkeydown="if(event.key==='Enter'&&!event.shiftKey) applyEdit()">
+    </div>
+
+    <!-- Prioridad + Fecha (solo para tareas principales) -->
+    <div class="modal-row" id="editExtras">
+      <div class="modal-field">
+        <label>Prioridad</label>
+        <select id="editPriority">
+          <option value="normal">🔵 Normal</option>
+          <option value="alta">🔴 Alta</option>
+          <option value="baja">🟢 Baja</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Fecha límite (opcional)</label>
+        <input id="editDueDate" type="date">
+      </div>
+    </div>
+
+    <!-- NOTAS (solo para tareas principales) -->
+    <div class="modal-field" id="editNotesField">
+      <label>Notas / contexto</label>
+      <textarea id="editNotes" placeholder="Añade contexto, enlaces, pasos… (Shift+Enter para salto de línea)"></textarea>
+    </div>
+
+    <!-- ETIQUETAS (solo para tareas principales) -->
+    <div class="modal-field" id="editTagsField">
+      <label>Etiquetas (máx. 3)</label>
+      <!--
+        Los botones se generan dinámicamente desde PREDEFINED_TAGS
+        en openEditModal(). Para añadir etiquetas predefinidas,
+        edita el array PREDEFINED_TAGS en el JS.
+      -->
+      <div class="tag-selector" id="tagSelector"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn2" onclick="closeEditModal()">Cancelar</button>
+      <button class="btn"  onclick="applyEdit()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- POMODORO WIDGET -->
+<div id="pomodoroWidget" class="pomodoro-widget hidden">
+  <div class="pom-header">
+    <h4>🍅 Modo Foco</h4>
+    <button class="pom-close" onclick="closePomodoroWidget()">✕</button>
+  </div>
+  <div class="pom-task-name" id="pomTaskName">Sin tarea</div>
+  <div class="pom-modes">
+    <button class="pom-mode-btn active" id="pomMode25" onclick="setPomodoroMode(25,'focus')">Foco 25'</button>
+    <button class="pom-mode-btn"        id="pomMode5"  onclick="setPomodoroMode(5,'rest')">Pausa 5'</button>
+    <button class="pom-mode-btn"        id="pomMode15" onclick="setPomodoroMode(15,'rest')">Pausa 15'</button>
+  </div>
+  <div class="pom-ring-wrap">
+    <svg width="110" height="110" viewBox="0 0 110 110">
+      <circle class="pom-ring-bg"   cx="55" cy="55" r="48"/>
+      <circle class="pom-ring-fill" id="pomRingFill" cx="55" cy="55" r="48"
+              stroke-dasharray="301.59" stroke-dashoffset="0"/>
+    </svg>
+    <div class="pom-time" id="pomTime">25:00</div>
+  </div>
+  <div class="pom-controls">
+    <button class="btn8" id="pomPlayBtn" onclick="togglePomodoro()">▶ Iniciar</button>
+    <button class="btn2" onclick="resetPomodoro()">↺ Reset</button>
+  </div>
+  <div class="pom-sessions" id="pomSessions">Sesiones hoy: 0 🍅</div>
+</div>
+
+<!-- =========================================================
+     JAVASCRIPT
+     =========================================================
+     SECCIONES:
+       1.  Estado global
+       2.  Constantes (tags predefinidos)
+       3.  Persistencia
+       4.  Normalización
+       5.  Helpers (fecha, color, escape)
+       6.  Filtros y ordenación
+       7.  Acciones sobre tareas
+       8.  Acciones sobre subtareas
+       9.  Destacar / quitar destaque
+      10.  Reordenamiento
+      11.  Modal de edición
+      12.  Notas inline (toggle visible/oculto)
+      13.  Pomodoro
+      14.  Estadísticas
+      15.  Backup (localStorage + fichero + auto-backup)
+      16.  Renderizado (render, renderGestion, renderArbol)
+      17.  Inicialización
+     ========================================================= -->
+<script src="js/tareas.js"></script>
+</body>
+</html>
+
+

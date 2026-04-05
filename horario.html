@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/horario.css">
+</head>
+<body>
+<main class="container">
+  <header class="header">
+    <div class="title-wrap">
+      <h1>🗓 Planificador Semanal</h1>
+      <p>Franja por hora (07:00-22:00). Selecciona tarea y asigna con un clic.</p>
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-ghost" href="index.html">↩ Inicio</a>
+      <button class="btn btn-primary" type="button" id="printBtn">🖨 Exportar PDF</button>
+    </div>
+  </header>
+
+  <section class="layout">
+    <aside class="panel sidebar">
+      <h2>Asignación</h2>
+      <div class="hint">1) Elige una tarea de la lista o crea una manual. 2) Haz clic en varias celdas para seleccionarlas. 3) Aplica la tarea seleccionada a todas a la vez.</div>
+
+      <div class="field">
+        <label>Tarea seleccionada</label>
+        <div id="selectedTaskBadge" class="badge badge-cyan">Ninguna</div>
+      </div>
+
+      <div class="field">
+        <label>Franjas seleccionadas</label>
+        <div id="selectedSlotsBadge" class="badge badge-amber">0 franjas</div>
+      </div>
+
+      <div class="bulk-actions">
+        <button class="btn btn-primary" type="button" id="applyToSelectionBtn">Aplicar tarea a selección</button>
+        <button class="btn btn-ghost" type="button" id="clearSelectionBtn">Limpiar selección</button>
+        <button class="btn btn-ghost" type="button" id="clearTasksFromSelectionBtn">Quitar tareas de selección</button>
+      </div>
+
+      <div class="field">
+        <label>Tareas pendientes</label>
+        <div id="pendingTaskList" class="pending-list"></div>
+      </div>
+
+      <div class="field">
+        <label>Crear tarea manual para horario</label>
+        <input id="manualTaskInput" type="text" placeholder="Ej: Gym, lectura, compras...">
+        <button class="btn btn-ghost" type="button" id="addManualTaskBtn">+ Añadir tarea manual</button>
+      </div>
+
+      <div class="field">
+        <label>Mis tareas manuales</label>
+        <div id="customTaskList" class="custom-list"></div>
+      </div>
+    </aside>
+
+    <section class="panel planner">
+      <div class="week-nav">
+        <button class="btn btn-ghost" type="button" id="prevWeekBtn">← Semana anterior</button>
+        <div id="weekRangeText" class="week-range">Semana del ...</div>
+        <button class="btn btn-ghost" type="button" id="nextWeekBtn">Semana siguiente →</button>
+        <button class="btn btn-primary" type="button" id="todayWeekBtn">Hoy</button>
+      </div>
+      <div id="plannerGrid" class="planner-grid"></div>
+    </section>
+  </section>
+
+  <p class="hint">Las asignaciones se guardan en localStorage usando <strong>saveSchedule()</strong>. Cada franja permite varias tareas apiladas y puedes editarlas o quitarlas individualmente.</p>
+  <div id="feedback" class="hint" aria-live="polite"></div>
+</main>
+<script src="js/storage.js"></script>
+<script src="js/horario.js"></script>
+</body>
+</html>
