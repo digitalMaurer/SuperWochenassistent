@@ -54,6 +54,34 @@ a {
 	box-shadow: var(--shadow);
 }
 
+.app-nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 18px;
+}
+
+.app-nav-link {
+	display: inline-flex;
+	align-items: center;
+	padding: 10px 14px;
+	border-radius: 999px;
+	background: rgba(255,255,255,.06);
+	color: var(--text);
+	text-decoration: none;
+	border: 1px solid transparent;
+	transition: background .18s ease, border-color .18s ease;
+}
+
+.app-nav-link:hover {
+	background: rgba(255,255,255,.12);
+}
+
+.app-nav-link.active {
+	background: rgba(34,211,238,.16);
+	border-color: rgba(34,211,238,.35);
+}
+
 .btn {
 	font-family: var(--font-body);
 	font-size: 13px;

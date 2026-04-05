@@ -508,6 +508,7 @@ function startPomodoro(taskId, taskText){
   if(pom.taskId && pom.taskId!==taskId && pom.running){
     if(!confirm('¿Cambiar el Pomodoro a esta tarea? Se reiniciará.')) return;
   }
+  ensureNotificationPermissionForPomodoro();
   pom.taskId = taskId;
   resetPomodoro();
   document.getElementById('pomTaskName').textContent = taskText;
@@ -1073,24 +1074,15 @@ function renderArbol(items, list){
  * en el evento beforeunload por seguridad. El fichero se descargará
  * si el usuario confirma que quiere salir.
  */
-window.addEventListener('beforeunload', function(e){
-  if(!backupJustDone && tasks.length > 0){
-    showBackupWarning();
-    // Intenta exportar automáticamente
-    try { exportBackupFile(true); } catch(err){}
-    e.preventDefault();
-    e.returnValue = '¿Salir? Se intentó exportar el backup automáticamente.';
-  }
-});
-
 /** Escape cierra el modal. */
 window.addEventListener('keydown', e => {
   if(e.key === 'Escape') closeEditModal();
 });
 
-/** Permiso de notificaciones para el Pomodoro. */
-if(Notification && Notification.permission === 'default'){
-  Notification.requestPermission();
+function ensureNotificationPermissionForPomodoro(){
+  if(!('Notification' in window)) return;
+  if(Notification.permission !== 'default') return;
+  Notification.requestPermission().catch(() => {});
 }
 
 /** Re-render automático cada minuto (actualiza antigüedades). */

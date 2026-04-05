@@ -66,6 +66,28 @@ h1{
   gap:8px;
   flex-wrap:wrap;
 }
+.app-nav {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:24px;
+}
+.app-nav-link {
+  text-decoration:none;
+  color:var(--text);
+  background:rgba(255,255,255,.06);
+  border:1px solid transparent;
+  border-radius:12px;
+  padding:10px 14px;
+  transition:background .18s ease, border-color .18s ease;
+}
+.app-nav-link:hover {
+  background:rgba(255,255,255,.12);
+}
+.app-nav-link.active {
+  background:linear-gradient(135deg, var(--accent), var(--accent2));
+  color:#04111d;
+}
 .btn{
   text-decoration:none;
   display:inline-block;
@@ -100,6 +122,11 @@ h1{
     <h1>Centro de Productividad</h1>
     <p class="subtitle">Entrada única para tus módulos. La app de tareas mantiene su estado en localStorage con la clave tasks.</p>
 
+    <nav class="app-nav" aria-label="Navegación principal">
+      <a class="app-nav-link active" href="index.html">Inicio</a>
+      <a class="app-nav-link" href="tareas.html">Tareas</a>
+      <a class="app-nav-link" href="horario.html">Horario</a>
+    </nav>
     <section class="grid">
       <article class="card">
         <span class="badge">Disponible</span>
