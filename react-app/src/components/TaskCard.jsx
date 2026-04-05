@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 
 function TaskCard({
   task,
+  position,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
+  onPlan,
   onToggle,
   onDelete,
   onHighlight,
@@ -58,13 +64,16 @@ function TaskCard({
     <article className={`task-card ${task.done ? 'completed' : ''} ${task.highlighted ? 'highlighted' : ''}`}>
       <div className="task-card-main">
         <div className="task-card-header">
-          <div>
-            <h3 className="task-title">{task.text || 'Sin título'}</h3>
-            <div className="task-meta">
-              <span className="meta-pill">{task.priority}</span>
-              {task.dueDate && <span className="meta-pill">Due: {task.dueDate}</span>}
-              <span className="meta-pill">Est: {task.estimatedMinutes}m</span>
-              <span className="meta-pill">Rest: {task.remainingMinutes}m</span>
+          <div className="task-card-header-left">
+            {position != null && <span className="task-number">{position}</span>}
+            <div>
+              <h3 className="task-title">{task.text || 'Sin título'}</h3>
+              <div className="task-meta">
+                <span className="meta-pill">{task.priority}</span>
+                {task.dueDate && <span className="meta-pill">Due: {task.dueDate}</span>}
+                <span className="meta-pill">Est: {task.estimatedMinutes}m</span>
+                <span className="meta-pill">Rest: {task.remainingMinutes}m</span>
+              </div>
             </div>
           </div>
           {task.highlighted && <span className="task-highlight">Destacada</span>}
@@ -160,9 +169,34 @@ function TaskCard({
       </div>
 
       <div className="task-actions">
+        {position != null && (
+          <>
+            <button
+              className="task-action"
+              type="button"
+              onClick={() => onMoveUp && onMoveUp(task.id)}
+              disabled={!canMoveUp}
+            >
+              Arriba
+            </button>
+            <button
+              className="task-action"
+              type="button"
+              onClick={() => onMoveDown && onMoveDown(task.id)}
+              disabled={!canMoveDown}
+            >
+              Abajo
+            </button>
+          </>
+        )}
         <button className="task-action" type="button" onClick={() => onToggle(task.id)}>
           {task.done ? 'Reabrir' : 'Completar'}
         </button>
+        {typeof onPlan === 'function' && !task.done && (
+          <button className="task-action" type="button" onClick={() => onPlan(task.id)}>
+            Planificar
+          </button>
+        )}
         <button className="task-action" type="button" onClick={() => onHighlight(task.id)}>
           {task.highlighted ? 'Quitar destaque' : 'Destacar'}
         </button>

@@ -3,9 +3,11 @@ const STORAGE_KEY = 'weekSchedule';
 function normalizeAssignment(assignment, index = 0) {
   return {
     id: assignment.id ?? Date.now() + index,
-    text: assignment.text || 'Nueva asignación',
+    text: assignment.text || assignment.taskText || 'Nueva asignación',
     date: assignment.date || null,
     hour: typeof assignment.hour === 'number' ? assignment.hour : Number(assignment.hour) || 7,
+    taskId: assignment.taskId ?? null,
+    taskText: assignment.taskText || assignment.text || null,
     createdAt: assignment.createdAt || new Date().toISOString(),
   };
 }
@@ -50,12 +52,14 @@ function saveSchedule(schedule) {
   return normalized;
 }
 
-function createAssignment(text, date, hour) {
+function createAssignment(text, date, hour, taskId = null, taskText = null) {
   return {
     id: Date.now(),
-    text: text.trim() || 'Tarea rápida',
+    text: text.trim() || taskText || 'Tarea rápida',
     date,
     hour,
+    taskId,
+    taskText: taskText || text.trim() || null,
     createdAt: new Date().toISOString(),
   };
 }

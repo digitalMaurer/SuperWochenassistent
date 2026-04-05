@@ -19,6 +19,7 @@ function normalizeTask(task, index = 0) {
     completedAt: task.completedAt || null,
     estimatedMinutes,
     remainingMinutes,
+    order: typeof task.order === 'number' ? task.order : null,
     subs: Array.isArray(task.subs)
       ? task.subs.map((sub, subIndex) => ({
           id: sub.id ?? Date.now() + index + subIndex + 1,
@@ -32,7 +33,33 @@ function normalizeTask(task, index = 0) {
 
 function normalizeTasks(tasks) {
   if (!Array.isArray(tasks)) return [];
-  return tasks.map((task, index) => normalizeTask(task, index));
+
+  const normalized = tasks.map((task, index) => normalizeTask(task, index));
+  const pendingTasks = normalized
+    .filter((task) => !task.done)
+    .slice()
+    .sort((a, b) => {
+      const orderA = typeof a.order === 'number' ? a.order : Number.MAX_SAFE_INTEGER;
+      const orderB = typeof b.order === 'number' ? b.order : Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      if (a.createdAt !== b.createdAt) return a.createdAt.localeCompare(b.createdAt);
+      return a.id - b.id;
+    })
+    .map((task, index) => ({
+      ...task,
+      order: index + 1,
+    }));
+
+  const pendingById = new Map(pendingTasks.map((task) => [task.id, task]));
+
+  return normalized.map((task) =>
+    task.done
+      ? {
+          ...task,
+          order: typeof task.order === 'number' ? task.order : null,
+        }
+      : pendingById.get(task.id)
+  );
 }
 
 function importTasks(data) {
@@ -60,7 +87,7 @@ function saveTasks(tasks) {
   return normalized;
 }
 
-function createTask(text) {
+function createTask(text, order = null) {
   const now = new Date().toISOString();
   return {
     id: Date.now(),
@@ -75,6 +102,7 @@ function createTask(text) {
     completedAt: null,
     estimatedMinutes: 0,
     remainingMinutes: 0,
+    order,
     subs: [],
   };
 }

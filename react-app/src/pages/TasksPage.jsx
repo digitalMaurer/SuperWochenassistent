@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createTask, importTasks, loadTasks, saveTasks } from '../utils/tasksStorage';
 import TaskCard from '../components/TaskCard';
 import TaskFilter from '../components/TaskFilter';
 
 function TasksPage() {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [text, setText] = useState('');
+  const [view, setView] = useState('gestion');
   const [filter, setFilter] = useState('all');
   const [importText, setImportText] = useState('');
   const [importFeedback, setImportFeedback] = useState(null);
@@ -32,26 +35,88 @@ function TasksPage() {
     setTasks(normalized);
   };
 
+  const getPendingTasks = (sourceTasks) =>
+    sourceTasks
+      .filter((task) => !task.done)
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.createdAt.localeCompare(b.createdAt));
+
+  const getCompletedTasks = (sourceTasks) =>
+    sourceTasks
+      .filter((task) => task.done)
+      .slice()
+      .sort((a, b) =>
+        (a.completedAt || '').localeCompare(b.completedAt || '') ||
+        a.createdAt.localeCompare(b.createdAt)
+      );
+
+  const getNextPendingOrder = (sourceTasks) =>
+    sourceTasks.reduce(
+      (max, task) => Math.max(max, task.done ? max : typeof task.order === 'number' ? task.order : 0),
+      0
+    ) + 1;
+
+  const reorderPendingTasks = (sourceTasks, reorderedPending) => {
+    const pendingById = new Map(reorderedPending.map((task) => [task.id, task]));
+    return sourceTasks.map((task) => (pendingById.has(task.id) ? pendingById.get(task.id) : task));
+  };
+
+  const movePendingTask = (taskId, direction) => {
+    const pending = getPendingTasks(tasks);
+    const index = pending.findIndex((task) => task.id === taskId);
+    if (index === -1) return;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= pending.length) return;
+
+    const reordered = [...pending];
+    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+
+    const normalized = reordered.map((task, orderIndex) => ({
+      ...task,
+      order: orderIndex + 1,
+    }));
+    handleSave(reorderPendingTasks(tasks, normalized));
+  };
+
+  const moveTaskToPendingTop = (sourceTasks, taskId) => {
+    const pending = getPendingTasks(sourceTasks);
+    const target = pending.find((task) => task.id === taskId);
+    if (!target) return sourceTasks;
+
+    const reordered = [target, ...pending.filter((task) => task.id !== taskId)].map(
+      (task, orderIndex) => ({
+        ...task,
+        order: orderIndex + 1,
+      })
+    );
+    return reorderPendingTasks(sourceTasks, reordered);
+  };
+
   const handleAdd = (event) => {
     event.preventDefault();
     const trimmed = text.trim();
     if (!trimmed) return;
 
-    const newTask = createTask(trimmed);
-    handleSave([newTask, ...tasks]);
+    const newTask = createTask(trimmed, getNextPendingOrder(tasks));
+    handleSave([...tasks, newTask]);
     setText('');
+    setView('gestion');
   };
 
   const handleToggle = (taskId) => {
-    const updated = tasks.map((task) =>
-      task.id === taskId
-        ? {
-            ...task,
-            done: !task.done,
-            completedAt: !task.done ? new Date().toISOString() : null,
-          }
-        : task
-    );
+    const updated = tasks.map((task) => {
+      if (task.id !== taskId) return task;
+
+      const nextDone = !task.done;
+      return {
+        ...task,
+        done: nextDone,
+        completedAt: nextDone ? new Date().toISOString() : null,
+        order: nextDone ? task.order : getNextPendingOrder(tasks),
+      };
+    });
+
     handleSave(updated);
   };
 
@@ -60,9 +125,15 @@ function TasksPage() {
   };
 
   const handleHighlight = (taskId) => {
-    const updated = tasks.map((task) =>
+    let updated = tasks.map((task) =>
       task.id === taskId ? { ...task, highlighted: !task.highlighted } : task
     );
+
+    const toggled = updated.find((task) => task.id === taskId);
+    if (toggled && toggled.highlighted && !toggled.done) {
+      updated = moveTaskToPendingTop(updated, taskId);
+    }
+
     handleSave(updated);
   };
 
@@ -76,6 +147,10 @@ function TasksPage() {
         : task
     );
     handleSave(updated);
+  };
+
+  const handlePlanTask = (taskId) => {
+    navigate(`/semana?taskId=${taskId}`);
   };
 
   const validateImportObject = (payload) => {
@@ -146,6 +221,7 @@ function TasksPage() {
       setTasks(normalized);
       setImportText('');
       setImportFeedback({ type: 'success', message: `${imported.length} tarea(s) importada(s) correctamente.` });
+      setView('gestion');
     } catch (error) {
       setImportFeedback({ type: 'error', message: 'JSON inválido. Revisa la sintaxis.' });
     }
@@ -197,11 +273,33 @@ function TasksPage() {
     handleSave(updated);
   };
 
+  const pendingTasks = useMemo(() => getPendingTasks(tasks), [tasks]);
+  const completedTasks = useMemo(() => getCompletedTasks(tasks), [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    if (filter === 'pending') return pendingTasks;
+    if (filter === 'completed') return completedTasks;
+    return [...pendingTasks, ...completedTasks];
+  }, [pendingTasks, completedTasks, filter]);
+
+  const focusTask = useMemo(() => {
+    const highlighted = pendingTasks.find((task) => task.highlighted);
+    return highlighted || pendingTasks[0] || null;
+  }, [pendingTasks]);
+
+  const pendingPositionById = useMemo(() => {
+    return pendingTasks.reduce((map, task, index) => {
+      map[task.id] = index + 1;
+      return map;
+    }, {});
+  }, [pendingTasks]);
+
   const visibleTasks = useMemo(() => {
-    if (filter === 'pending') return tasks.filter((task) => !task.done);
-    if (filter === 'completed') return tasks.filter((task) => task.done);
-    return tasks;
-  }, [tasks, filter]);
+    if (view === 'foco') {
+      return focusTask ? [focusTask] : [];
+    }
+    return filteredTasks;
+  }, [filteredTasks, view, focusTask]);
 
   return (
     <section className="page-panel">
@@ -210,47 +308,115 @@ function TasksPage() {
           <h2>Tareas</h2>
           <p>Gestión de tareas con subtareas y tiempo estimado/restante.</p>
         </div>
-        <TaskFilter value={filter} onChange={setFilter} />
-      </div>
-
-      <form className="task-form" onSubmit={handleAdd}>
-        <input
-          className="task-input"
-          placeholder="Añadir nueva tarea..."
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-        />
-        <button className="task-button" type="submit">
-          Añadir
-        </button>
-      </form>
-
-      {visibleTasks.length === 0 && (
-        <p>No hay tareas en esta vista.</p>
-      )}
-
-      <div className="ai-prompt-section">
-        <h3>Generar tarea con ayuda de IA</h3>
-        <p>Copiar este prompt y pegarlo en tu IA externa para obtener un JSON listo para importar.</p>
-        <textarea
-          className="import-textarea"
-          value={aiPrompt}
-          readOnly
-          rows={10}
-        />
-        <div className="import-actions">
-          <button className="task-button" type="button" onClick={handleCopyPrompt}>
-            Copiar prompt
-          </button>
-          {copyFeedback && (
-            <div className="import-feedback success">
-              {copyFeedback}
-            </div>
-          )}
+        <div className="view-controls">
+          <div className="view-tabs">
+            <button
+              type="button"
+              className={`tab-button ${view === 'gestion' ? 'active' : ''}`}
+              onClick={() => setView('gestion')}
+            >
+              Gestión
+            </button>
+            <button
+              type="button"
+              className={`tab-button ${view === 'foco' ? 'active' : ''}`}
+              onClick={() => setView('foco')}
+            >
+              Foco
+            </button>
+          </div>
+          {view === 'gestion' && <TaskFilter value={filter} onChange={setFilter} />}
         </div>
       </div>
 
-      <div className="import-section">
+      {view === 'gestion' && (
+        <>
+          <form className="task-form" onSubmit={handleAdd}>
+            <input
+              className="task-input"
+              placeholder="Añadir nueva tarea..."
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+            />
+            <button className="task-button" type="submit">
+              Añadir
+            </button>
+          </form>
+
+          <div className="management-info">
+            <p>Modo gestión: puedes añadir tareas, importar JSON y usar el prompt IA.</p>
+          </div>
+        </>
+      )}
+
+      {view === 'foco' ? (
+        focusTask ? (
+          <div className="focus-summary">
+            <h3>Tarea en foco</h3>
+            <p>
+              {focusTask.highlighted
+                ? 'Mostrando la tarea destacada pendiente.'
+                : 'Mostrando la primera tarea pendiente.'}
+            </p>
+            <p className="focus-note">Para gestionar o añadir tareas, cambia al modo Gestión.</p>
+          </div>
+        ) : (
+          <div className="focus-empty">
+            <p>No hay tareas pendientes para enfocar.</p>
+            <p className="focus-note">Cambia al modo Gestión para ver todas tus tareas y crear nuevas.</p>
+          </div>
+        )
+      ) : null}
+
+      <div className="task-list">
+        {visibleTasks.map((task) => {
+          const position = pendingPositionById[task.id];
+          return (
+            <TaskCard
+              key={task.id}
+              task={task}
+              position={position}
+              canMoveUp={position != null && position > 1}
+              canMoveDown={position != null && position < pendingTasks.length}
+              onMoveUp={movePendingTask}
+              onMoveDown={movePendingTask}
+              onToggle={handleToggle}
+              onDelete={handleDelete}
+              onHighlight={handleHighlight}
+              onPlan={handlePlanTask}
+              onSaveEdit={handleSaveEdit}
+              onAddSubtask={handleAddSubtask}
+              onToggleSubtask={handleToggleSubtask}
+              onDeleteSubtask={handleDeleteSubtask}
+            />
+          );
+        })}
+      </div>
+
+      {view === 'gestion' && (
+        <>
+          <div className="ai-prompt-section">
+            <h3>Generar tarea con ayuda de IA</h3>
+            <p>Copiar este prompt y pegarlo en tu IA externa para obtener un JSON listo para importar.</p>
+            <textarea
+              className="import-textarea"
+              value={aiPrompt}
+              readOnly
+              rows={10}
+            />
+            <div className="import-actions">
+              <button className="task-button" type="button" onClick={handleCopyPrompt}>
+                Copiar prompt
+              </button>
+              {copyFeedback && (
+                <div className="import-feedback success">
+                  {copyFeedback}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="import-section">
         <h3>Importar tareas desde JSON</h3>
         <p>Pega aquí el JSON de tareas para añadirlas automáticamente.</p>
         <textarea
@@ -260,20 +426,20 @@ function TasksPage() {
           placeholder='Ejemplo: [{ "text": "Estudiar React", "priority": "alta", "dueDate": "2026-04-10", "notes": "Repasar hooks", "estimatedMinutes": 90, "remainingMinutes": 90, "subs": [{ "text": "Leer docs" }] } ]'
           rows={8}
         />
-        <div className="import-actions">
-          <button className="task-button" type="button" onClick={handleImport}>
-            Importar JSON
-          </button>
-          {importFeedback && (
-            <div className={`import-feedback ${importFeedback.type}`}>
-              {importFeedback.message}
-            </div>
-          )}
-        </div>
+          <div className="import-actions">
+            <button className="task-button" type="button" onClick={handleImport}>
+              Importar JSON
+            </button>
+            {importFeedback && (
+              <div className={`import-feedback ${importFeedback.type}`}>
+                {importFeedback.message}
+              </div>
+            )}
+          </div>
 
-        <div className="import-template">
-          <strong>Ejemplo mínimo válido:</strong>
-          <pre>{`[
+              <div className="import-template">
+              <strong>Ejemplo mínimo válido:</strong>
+              <pre>{`[
   {
     "text": "Escribir informe",
     "priority": "normal",
@@ -287,8 +453,10 @@ function TasksPage() {
     ]
   }
 ]`}</pre>
-        </div>
-      </div>
+            </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }
