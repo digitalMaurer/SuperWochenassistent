@@ -135,6 +135,9 @@ function WeekPage() {
           <button type="button" onClick={() => changeWeek(1)}>
             Semana siguiente
           </button>
+          <button type="button" onClick={() => window.print()}>
+            Imprimir
+          </button>
         </div>
       </div>
 

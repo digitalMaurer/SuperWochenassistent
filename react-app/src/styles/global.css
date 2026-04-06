@@ -795,6 +795,8 @@ a {
   .app-header,
   .app-nav,
   .week-actions,
+  .month-actions,
+  .week-sidebar,
   .slot-entry,
   .selected-slot-box,
   .task-form,
@@ -832,6 +834,8 @@ a {
     border: 1px solid #000;
     box-shadow: none;
     margin-bottom: 0;
+    width: 100%;
+    font-size: 0.93rem;
   }
 
   .grid-header,
@@ -844,8 +848,18 @@ a {
   }
 
   .grid-slot {
-    min-height: 80px;
+    min-height: 72px;
     cursor: default;
+  }
+
+  .grid-slot:hover,
+  .grid-slot.selected {
+    background: #fff;
+    outline: none;
+  }
+
+  .week-toolbar {
+    page-break-after: avoid;
   }
 
   .assignment-pill {
@@ -856,6 +870,39 @@ a {
 
   .assignment-pill button {
     display: none;
+  }
+
+  .month-actions {
+    display: none !important;
+  }
+
+  .month-grid {
+    background: transparent;
+    border: 1px solid #000;
+  }
+
+  .month-grid-header,
+  .month-cell {
+    background: #fff;
+    color: #000;
+    border: 1px solid #000;
+    page-break-inside: avoid;
+  }
+
+  .month-cell {
+    min-height: 90px;
+    cursor: default;
+  }
+
+  .month-cell:hover {
+    background: #fff;
+  }
+
+  .month-page button {
+    border: 1px solid #000;
+    background: transparent;
+    color: #000;
+    cursor: default;
   }
 
   .slot-empty {

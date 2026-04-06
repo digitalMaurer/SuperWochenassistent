@@ -55,6 +55,9 @@ function MonthPage() {
           <button type="button" onClick={() => changeMonth(1)}>
             Mes siguiente
           </button>
+          <button type="button" onClick={() => window.print()}>
+            Imprimir
+          </button>
         </div>
       </div>
 
