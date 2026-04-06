@@ -11,13 +11,17 @@ Aplicación web para gestionar tareas diarias y planificar tu semana de forma vi
 - 💾 Persistencia automática con localStorage
 
 ### **Planificador Semanal** (`horario.html`)
-- 📅 Vista de grid semanal (lunes a domingo)
+- 🗓️ Vista de grid semanal (lunes a domingo)
 - ⏰ Franjas horarias de 7:00 AM a 10:00 PM
 - 📌 Asignar tareas a múltiples franjas simultáneamente
 - 🧩 Apilar tareas en el mismo horario
 - 🔄 Selección múltiple con click para marcar/desmarcar franjas
 - ✏️ Modificar y eliminar asignaciones
 - 🖨️ Exportar a PDF con `Ctrl+P`
+
+#### 🚧 Limitación actual: impresión tipo poster (A2 dividido en 4 A4)
+- La función "Poster 4xA4" está deshabilitada temporalmente por problemas de corte/alineación en la cuadrícula semanal.
+- Puedes imprimir en A4 o A2 completo, pero el modo poster estará disponible en una futura versión.
 
 ## 📁 Estructura del Proyecto
 
