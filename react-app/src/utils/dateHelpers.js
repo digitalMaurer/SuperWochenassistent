@@ -20,6 +20,13 @@ function formatDateKey(date) {
   return date.toISOString().slice(0, 10);
 }
 
+function formatEuropeanDate(date) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
 function formatWeekRange(weekDates) {
   const start = weekDates[0];
   const end = weekDates[6];
@@ -64,4 +71,4 @@ function formatMonthLabel(date) {
   return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 }
 
-export { getMonday, getWeekDates, formatDateKey, formatWeekRange, getMonthGrid, formatMonthLabel };
+export { getMonday, getWeekDates, formatDateKey, formatEuropeanDate, formatWeekRange, getMonthGrid, formatMonthLabel };

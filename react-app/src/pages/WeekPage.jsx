@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { createAssignment, loadSchedule, saveSchedule } from '../utils/weekScheduleStorage';
 import { loadTasks } from '../utils/tasksStorage';
-import { getWeekDates, formatDateKey, formatWeekRange } from '../utils/dateHelpers';
+import { getWeekDates, formatDateKey, formatEuropeanDate, formatWeekRange } from '../utils/dateHelpers';
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 7);
 
@@ -44,6 +44,11 @@ function WeekPage() {
 
   const weekDates = useMemo(() => getWeekDates(currentDate), [currentDate]);
   const weekLabel = useMemo(() => formatWeekRange(weekDates), [weekDates]);
+
+  const openPrintWindow = () => {
+    const url = `${window.location.origin}/semana/print?date=${formatDateKey(currentDate)}&from=7&to=22`;
+    window.open(url, '_blank');
+  };
 
   const getSlotAssignments = (key) => schedule.slots[key] || [];
 
@@ -135,7 +140,7 @@ function WeekPage() {
           <button type="button" onClick={() => changeWeek(1)}>
             Semana siguiente
           </button>
-          <button type="button" onClick={() => window.print()}>
+          <button type="button" onClick={openPrintWindow}>
             Imprimir
           </button>
         </div>
@@ -183,7 +188,7 @@ function WeekPage() {
           {weekDates.map((day) => (
             <div key={formatDateKey(day)} className="grid-header day-cell">
               <div>{day.toLocaleDateString('es-ES', { weekday: 'long' })}</div>
-              <div>{formatDateKey(day)}</div>
+              <div>{formatEuropeanDate(day)}</div>
             </div>
           ))}
 
@@ -242,6 +247,7 @@ function WeekPage() {
           </button>
         </div>
       </div>
+
     </section>
   );
 }
